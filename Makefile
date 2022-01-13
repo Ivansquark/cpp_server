@@ -12,7 +12,7 @@ AS = ~/raspberrypi/i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-as
 OBJ =  ~/raspberrypi/i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-objdump
 
 
-CPPFLAGS = -Wall -Wpedantic -g3 -O0
+CPPFLAGS = -std=c++17 -Wall -Wpedantic -g3 -O0
 LFLAGS = -lpthread -L/home/opa/pi/sysroot/lib -fPIC -Xlinker -Map=$(BLD)main.map  \
 		  #-static
 
