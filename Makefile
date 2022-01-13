@@ -21,14 +21,15 @@ INC = -Iinc/
 BLD = build/
 
 all: $(BLD)main.elf
+	
 
-$(BLD)main.elf: $(BLD)main.o $(BLD)tcp.o
+$(BLD)main.elf: $(BLD)main.o $(BLD)tcp.o $(BLD)http_parser.o
 	$(CPP) -o $@ $^ $(LFLAGS)
 #	$(OBJ) -D $(BLD)main.elf > $(BLD)main.list
 	
 $(BLD)%.o: $(SRC)%.cpp
+	if [ ! -d "build/" ]; then mkdir build;	fi
 	$(CPP) -c $< -o $@ $(CPPFLAGS) $(INC)
-
+	
 clean:
 	rm -Rf build/
-	mkdir build

@@ -1,6 +1,7 @@
 #ifndef TCP_H
 #define TCP_H
 
+#include "http_parser.h"
 #include "arpa/inet.h"
 #include "sys/socket.h"
 #include "sys/types.h"

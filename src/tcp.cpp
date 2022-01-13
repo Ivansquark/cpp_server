@@ -68,8 +68,7 @@ void Tcp::handleConnection(void *arg) {
     std::cout << "connectedSockFDnew = " << Tcp::instance()->connectedSockFD << std::endl;
     char buff[1540];
     memset(buff, 0, 1540);
-    int sockfd = 0;
-    std::string str;
+    HttpParser httpParser;
     // int connectedSockFD = 0;
     while (1) {
         // int client_sock = *(int *)arg;
@@ -80,83 +79,7 @@ void Tcp::handleConnection(void *arg) {
                 std::cout << buff[i];
             }
             std::cout << std::endl;
-            // parse first GET request
-            if (buff[0] == 'G' && buff[1] == 'E' && buff[2] == 'T' && buff[3] == ' ' && buff[4] == '/' &&
-                buff[5] == ' ') {
-                std::string sendStr;
-                std::ifstream file;
-                file.open("head.c");
-                if (!file.is_open()) {
-                    std::cout << "\n Cant open file";
-                } else {
-                    str.clear();
-                    while (std::getline(file, str)) {
-                        sendStr += str + "\n";
-                    }
-                    file.close();
-                }
-                file.open("index.html");
-                if (!file.is_open()) {
-                    std::cout << "\n Cant open file";
-                } else {
-                    std::cout << "Reply html" << std::endl;
-                    str.clear();
-                    sendStr += "\n";
-                    while (std::getline(file, str)) {
-                        sendStr += str + "\n";
-                    }
-                    Tcp::instance()->sendToClient(Tcp::instance()->connectedSockFD, sendStr);
-                    file.close();
-                }
-            } else if (buff[0] == 'G' && buff[1] == 'E' && buff[2] == 'T' && buff[3] == ' ' && buff[4] == '/' &&
-                       buff[5] == 's' && buff[6] == 't') {
-                // parse GET style.css request
-                // TODO: send head of style request
-                std::string sendStr;
-                std::ifstream file;
-                file.open("style.css");
-                if (!file.is_open()) {
-                    std::cout << "\n Cant open file";
-                } else {
-                    std::cout << "Style send" << std::endl;
-                    str.clear();
-                    sendStr += "\n";
-                    while (std::getline(file, str)) {
-                        sendStr += str + "\n";
-                    }
-                    Tcp::instance()->sendToClient(Tcp::instance()->connectedSockFD, sendStr);
-                    file.close();
-                }
-            } else if (buff[0] == 'G' && buff[1] == 'E' && buff[2] == 'T' && buff[3] == ' ' && buff[4] == '/' &&
-                       buff[5] == 's' && buff[6] == 'c') {
-                // parse GET script.js request
-                std::string sendStr;
-                std::ifstream file;
-                file.open("sript.js");
-                if (!file.is_open()) {
-                    std::cout << "\n Cant open file";
-                } else {
-                    std::cout << "Style send" << std::endl;
-                    str.clear();
-                    sendStr += "\n";
-                    while (std::getline(file, str)) {
-                        sendStr += str + "\n";
-                    }
-                    Tcp::instance()->sendToClient(Tcp::instance()->connectedSockFD, sendStr);
-                    file.close();
-                }
-            }
-            if (buff[0] == 's' && buff[1] == 't' && buff[2] == 'a' && buff[3] == 'r' && buff[4] == 't') {
-                str = "start";
-                Tcp::instance()->sendToClient(Tcp::instance()->connectedSockFD, str);
-            }
-            if (buff[0] == 'e' && buff[1] == 'x' && buff[2] == 'i' && buff[3] == 't') {
-                str = "exit";
-                Tcp::instance()->sendToClient(Tcp::instance()->connectedSockFD, str);
-                close(sockfd);
-                close(Tcp::instance()->connectedSockFD);
-                _exit(0);
-            }
+            httpParser.parseData(buff, size);
         }
     }
 }

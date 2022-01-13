@@ -108,7 +108,7 @@ void HttpParser::parseData(const char *buff, int len) {
         if (!file.is_open()) {
             std::cout << "\n Cant open file icon.png";
         } else {
-            std::cout << "Script send" << std::endl;
+            std::cout << "Icon send" << std::endl;
             str.clear();
             sendStr += "\n";
             while (std::getline(file, str)) {
