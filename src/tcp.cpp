@@ -1,4 +1,5 @@
 #include "tcp.h"
+
 Tcp *Tcp::pThis = nullptr;
 Tcp *Tcp::instance() {
     if (Tcp::pThis == nullptr) {
@@ -24,8 +25,8 @@ void Tcp::read() {
         std::cout << buff[i] << " ";
     }
 }
-int Tcp::listenConnections() { return listen(sockfd, 1); }
-void Tcp::init_server() {
+int Tcp::listenConnections() { return listen(sockfd, 3); }
+void Tcp::init_server(bool isHTTPS) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     std::cout << "init_server " << std::endl;
     saddr_in = new struct sockaddr_in;
@@ -34,7 +35,11 @@ void Tcp::init_server() {
     // saddr_in->sin_addr.s_addr = inet_addr("192.168.0.103");
     saddr_in->sin_addr.s_addr = inet_addr(IP);
     saddr_in->sin_family = AF_INET;
-    saddr_in->sin_port = htons(80);
+    if (isHTTPS) {
+        saddr_in->sin_port = htons(443);
+    } else {
+        saddr_in->sin_port = htons(80);
+    }
     sock_len = sizeof(sockaddr_in);
     std::cout << "socklen=" << sock_len << std::endl;
     int b = bind(sockfd, (const sockaddr *)saddr_in, sock_len);
@@ -43,42 +48,78 @@ void Tcp::init_server() {
         perror("Eror In bind");
         _exit(0);
     }
-    listenConnections();
+    if (isHTTPS) {
+        ctx = initialize_ctx(KEY_FILE, PEM_FILE);
+        if (!SSL_CTX_check_private_key(ctx)) {
+            abort();
+        }
+    }
+    int listenErr = listenConnections();
+    if (listenErr < 0) {
+        std::cout << "listenErr = " << listenErr << std::endl;
+    }
     socklen_t saddr_connected_len = sizeof(saddr_connected);
     std::cout << "connectedSockFD = " << connectedSockFD << std::endl;
     std::cout << "Connected IP:" << saddr_connected->sin_addr.s_addr << "\n";
     std::vector<std::unique_ptr<std::thread>> threads;
     while (1) {
-        if ((connectedSockFD = accept(sockfd, (sockaddr *)saddr_connected, &saddr_connected_len)) < 0) {
-            perror("In accept");
-            exit(EXIT_FAILURE);
-        }
-        if (connectedSockFD > 0) {
-            // std::thread newConnection(Tcp::handleConnection, nullptr);
-            // newConnection.join();
-            threads.emplace_back(new std::thread(Tcp::handleConnection, nullptr));
-            // TODO: check for memory leakage
+        if (isHTTPS) {
+            if ((connectedSockFD = accept(sockfd, 0, 0)) < 0) {
+                printf("Problem accepting\n");
+            }
+            if (connectedSockFD > 0) {
+                threads.emplace_back(new std::thread(Tcp::handleConnection, isHTTPS));
+            }
+        } else {
+            if ((connectedSockFD = accept(sockfd, (sockaddr *)saddr_connected, &saddr_connected_len)) < 0) {
+                perror("In accept");
+                exit(EXIT_FAILURE);
+            }
+            if (connectedSockFD > 0) {
+                threads.emplace_back(new std::thread(Tcp::handleConnection, isHTTPS));
+            }
         }
     }
 }
 
-void Tcp::handleConnection(void *arg) {
+void Tcp::handleConnection(bool arg) {
     system("clear");
     std::cout << "new c++ thread ID: " << std::this_thread::get_id() << std::endl;
     std::cout << "connectedSockFDnew = " << Tcp::instance()->connectedSockFD << std::endl;
-    char buff[1540];
-    memset(buff, 0, 1540);
-    HttpParser httpParser;
+    char buff[8000];
+    memset(buff, 0, 8000);
+    bool isHTTPS = arg;
+    HttpParser httpParser(isHTTPS, Tcp::instance()->connectedSockFD);
+    std::cout << "HttpParser" << std::endl;
     // int connectedSockFD = 0;
     while (1) {
         // int client_sock = *(int *)arg;
-        int size = recv(Tcp::instance()->connectedSockFD, buff, sizeof(buff), 0);
-        if (size > 0) {
-            std::cout << "size=" << size << std::endl;
+        if (!isHTTPS) {
+            int size = recv(Tcp::instance()->connectedSockFD, buff, sizeof(buff), 0);
+            if (size > 0) {
+                std::cout << "size=" << size << std::endl;
+                for (int i = 0; i < size; i++) {
+                    std::cout << buff[i];
+                }
+                std::cout << std::endl;
+                httpParser.parseData(buff, size);
+            }
+        } else {
+            // https encryption
+            int size = SSL_read(httpParser.ssl, buff, sizeof(buff));
+            // int error = SSL_get_error(httpParser.ssl, n);
+            // if (error == SSL_ERROR_WANT_READ) {
+            //    continue;
+            //} else if (error == 5) {
+            //    break;
+            //}
+            // buff[offset] = '\0';
+            // if (size <= 0) {
+            //    return;
+            //}
             for (int i = 0; i < size; i++) {
                 std::cout << buff[i];
             }
-            std::cout << std::endl;
             httpParser.parseData(buff, size);
         }
     }

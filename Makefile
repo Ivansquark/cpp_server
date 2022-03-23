@@ -13,7 +13,7 @@ OBJ =  ~/raspberrypi/i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-objdump
 
 
 CPPFLAGS = -std=c++17 -Wall -Wpedantic -g3 -O0
-LFLAGS = -lpthread -L/home/opa/pi/sysroot/lib -fPIC -Xlinker -Map=$(BLD)main.map  \
+LFLAGS = -lpthread -lssl -lcrypto -L/home/opa/pi/sysroot/lib -fPIC -Xlinker -Map=$(BLD)main.map  \
 		  #-static
 
 SRC = src/
@@ -23,7 +23,7 @@ BLD = build/
 all: $(BLD)main.elf
 	
 
-$(BLD)main.elf: $(BLD)main.o $(BLD)tcp.o $(BLD)http_parser.o
+$(BLD)main.elf: $(BLD)main.o $(BLD)tcp.o $(BLD)http_parser.o $(BLD)https.o
 	$(CPP) -o $@ $^ $(LFLAGS)
 #	$(OBJ) -D $(BLD)main.elf > $(BLD)main.list
 	
